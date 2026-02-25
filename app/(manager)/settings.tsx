@@ -39,18 +39,18 @@ export default function ManagerSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#1A1A2E", padding: 20 },
+  container: { flex: 1, backgroundColor: "#0D1B14", padding: 20 },
   header: { fontSize: 28, fontWeight: "700", color: "#FFF", marginBottom: 24 },
   card: {
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
   },
-  label: { color: "#8888AA", fontSize: 13, marginBottom: 4 },
+  label: { color: "#7A9E87", fontSize: 13, marginBottom: 4 },
   value: { color: "#FFF", fontSize: 16, fontWeight: "600" },
   freeBadge: {
-    backgroundColor: "rgba(228,106,65,0.15)",
+    backgroundColor: "rgba(45,139,78,0.15)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -58,13 +58,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   freeText: {
-    color: "#E46A41",
+    color: "#2D8B4E",
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,
   },
   logoutButton: {
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",

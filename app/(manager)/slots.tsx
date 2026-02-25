@@ -82,6 +82,7 @@ export default function ManagerSlotsScreen() {
   const [loading, setLoading] = useState(true);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [existingSlots, setExistingSlots] = useState<any[]>([]);
+  const [users, setUsers] = useState<Record<string, string>>({}); // uid -> displayName
 
   // Calendar navigation
   const today = new Date();
@@ -123,10 +124,44 @@ export default function ManagerSlotsScreen() {
       where("date", "<=", monthEnd),
     );
     const unsub = onSnapshot(q, (snap) => {
-      setExistingSlots(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const slots = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setExistingSlots(slots);
+
+      // Fetch user details for booked slots
+      const uids = [
+        ...new Set(
+          slots.filter((s) => s.isBooked && s.userId).map((s) => s.userId),
+        ),
+      ];
+      if (uids.length > 0) {
+        fetchUserNames(uids);
+      }
     });
     return unsub;
   }, [selectedCourt, calMonth, calYear]);
+
+  const fetchUserNames = async (uids: string[]) => {
+    try {
+      // Small optimization: only fetch users we don't have yet
+      const missing = uids.filter((id) => !users[id]);
+      if (missing.length === 0) return;
+
+      const userMap = { ...users };
+      for (const uid of missing) {
+        const userDoc = await getDocs(
+          query(collection(db, "Users"), where("__name__", "==", uid)),
+        );
+        if (!userDoc.empty) {
+          userMap[uid] = userDoc.docs[0].data().displayName || "Unknown Player";
+        } else {
+          userMap[uid] = "Deleted User";
+        }
+      }
+      setUsers(userMap);
+    } catch (e) {
+      console.error("Error fetching user names:", e);
+    }
+  };
 
   // Count existing slots per date
   const slotCountByDate = useMemo(() => {
@@ -252,7 +287,7 @@ export default function ManagerSlotsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#E46A41" />
+        <ActivityIndicator size="large" color="#2D8B4E" />
       </SafeAreaView>
     );
   }
@@ -262,7 +297,7 @@ export default function ManagerSlotsScreen() {
       <SafeAreaView style={styles.container}>
         <Text style={styles.header}>Slot Management</Text>
         <View style={styles.emptyState}>
-          <Ionicons name="tennisball-outline" size={64} color="#3A3A55" />
+          <Ionicons name="tennisball-outline" size={64} color="#2B4035" />
           <Text style={styles.emptyTitle}>Add a court first</Text>
           <Text style={styles.emptySubtitle}>
             Go to My Courts to add your venue
@@ -372,12 +407,12 @@ export default function ManagerSlotsScreen() {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.quickBtn} onPress={selectAllMonth}>
-            <Ionicons name="checkbox-outline" size={16} color="#E46A41" />
+            <Ionicons name="checkbox-outline" size={16} color="#2D8B4E" />
             <Text style={styles.quickBtnText}>Select All</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickBtn} onPress={clearSelection}>
-            <Ionicons name="close-circle-outline" size={16} color="#8888AA" />
-            <Text style={[styles.quickBtnText, { color: "#8888AA" }]}>
+            <Ionicons name="close-circle-outline" size={16} color="#7A9E87" />
+            <Text style={[styles.quickBtnText, { color: "#7A9E87" }]}>
               Clear
             </Text>
           </TouchableOpacity>
@@ -393,12 +428,12 @@ export default function ManagerSlotsScreen() {
           onPress={() => setShowTimePicker(!showTimePicker)}
         >
           <View style={styles.timeRangeHeader}>
-            <Ionicons name="time-outline" size={20} color="#E46A41" />
+            <Ionicons name="time-outline" size={20} color="#2D8B4E" />
             <Text style={styles.timeRangeTitle}>Operating Hours</Text>
             <Ionicons
               name={showTimePicker ? "chevron-up" : "chevron-down"}
               size={20}
-              color="#8888AA"
+              color="#7A9E87"
             />
           </View>
           <Text style={styles.timeRangeValue}>
@@ -486,6 +521,45 @@ export default function ManagerSlotsScreen() {
           )}
         </TouchableOpacity>
 
+        {/* Day Details / Management */}
+        {selectedDates.size > 0 && (
+          <View style={styles.dayDetails}>
+            <Text style={styles.dayDetailsTitle}>
+              Slots for {Array.from(selectedDates)[0]}
+            </Text>
+            {existingSlots
+              .filter((s) => s.date === Array.from(selectedDates)[0])
+              .sort((a, b) => a.time.localeCompare(b.time))
+              .map((s) => (
+                <View key={s.id} style={styles.slotCard}>
+                  <View style={styles.slotInfo}>
+                    <Text style={styles.slotTime}>{s.time}</Text>
+                    {s.isBooked ? (
+                      <View style={styles.bookedBadge}>
+                        <Ionicons name="person" size={12} color="#4CAF50" />
+                        <Text style={styles.bookedText}>
+                          {users[s.userId] || "Loading..."}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.availableBadge}>
+                        <Text style={styles.availableText}>Available</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.slotPrice}>LKR {s.price}</Text>
+                </View>
+              ))}
+            {existingSlots.filter(
+              (s) => s.date === Array.from(selectedDates)[0],
+            ).length === 0 && (
+              <Text style={styles.noSlotsText}>
+                No slots created for this day.
+              </Text>
+            )}
+          </View>
+        )}
+
         {/* Summary of existing slots this month */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>This Month</Text>
@@ -514,7 +588,7 @@ export default function ManagerSlotsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#1A1A2E", padding: 20 },
+  container: { flex: 1, backgroundColor: "#0D1B14", padding: 20 },
   header: { fontSize: 28, fontWeight: "700", color: "#FFF", marginBottom: 20 },
   emptyState: {
     flex: 1,
@@ -523,16 +597,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyTitle: { fontSize: 20, fontWeight: "700", color: "#FFF" },
-  emptySubtitle: { color: "#8888AA", fontSize: 15 },
+  emptySubtitle: { color: "#7A9E87", fontSize: 15 },
   courtChip: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     marginRight: 10,
   },
-  courtChipActive: { backgroundColor: "#E46A41" },
-  courtChipText: { color: "#8888AA", fontWeight: "600" },
+  courtChipActive: { backgroundColor: "#2D8B4E" },
+  courtChipText: { color: "#7A9E87", fontWeight: "600" },
   courtChipTextActive: { color: "#FFF" },
 
   // Calendar
@@ -548,7 +622,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     fontSize: 12,
-    color: "#8888AA",
+    color: "#7A9E87",
     fontWeight: "600",
   },
   calGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 16 },
@@ -559,8 +633,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "relative",
   },
-  calCellSelected: { backgroundColor: "#E46A41", borderRadius: 12 },
-  calCellToday: { borderWidth: 1, borderColor: "#E46A41", borderRadius: 12 },
+  calCellSelected: { backgroundColor: "#2D8B4E", borderRadius: 12 },
+  calCellToday: { borderWidth: 1, borderColor: "#2D8B4E", borderRadius: 12 },
   calCellPast: { opacity: 0.3 },
   calDateText: { fontSize: 15, color: "#FFF", fontWeight: "500" },
   calDateTextSelected: { color: "#FFF", fontWeight: "700" },
@@ -590,18 +664,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
   },
-  quickBtnText: { color: "#E46A41", fontSize: 13, fontWeight: "600" },
+  quickBtnText: { color: "#2D8B4E", fontSize: 13, fontWeight: "600" },
   selectionCount: {
-    color: "#8888AA",
+    color: "#7A9E87",
     fontSize: 13,
     marginLeft: "auto",
   },
 
   // Time range
   timeRangeCard: {
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
@@ -613,15 +687,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   timeRangeTitle: { flex: 1, color: "#FFF", fontWeight: "600", fontSize: 15 },
-  timeRangeValue: { color: "#E46A41", fontWeight: "700", fontSize: 18 },
+  timeRangeValue: { color: "#2D8B4E", fontWeight: "700", fontSize: 18 },
   timePickerContainer: {
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     borderRadius: 14,
     padding: 16,
     marginBottom: 20,
   },
   timePickerLabel: {
-    color: "#8888AA",
+    color: "#7A9E87",
     fontSize: 13,
     fontWeight: "600",
     marginBottom: 8,
@@ -630,13 +704,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#1A1A2E",
+    backgroundColor: "#0D1B14",
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#3A3A55",
+    borderColor: "#2B4035",
   },
-  hourChipActive: { backgroundColor: "#E46A41", borderColor: "#E46A41" },
-  hourChipText: { color: "#8888AA", fontWeight: "600", fontSize: 13 },
+  hourChipActive: { backgroundColor: "#2D8B4E", borderColor: "#2D8B4E" },
+  hourChipText: { color: "#7A9E87", fontWeight: "600", fontSize: 13 },
   hourChipTextActive: { color: "#FFF" },
 
   // Generate
@@ -655,7 +729,7 @@ const styles = StyleSheet.create({
 
   // Summary
   summaryCard: {
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     borderRadius: 14,
     padding: 20,
     marginBottom: 40,
@@ -669,5 +743,46 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: "row", justifyContent: "space-around" },
   summaryItem: { alignItems: "center" },
   summaryValue: { color: "#FFF", fontSize: 24, fontWeight: "700" },
-  summaryLabel: { color: "#8888AA", fontSize: 12, marginTop: 4 },
+  summaryLabel: { color: "#7A9E87", fontSize: 12, marginTop: 4 },
+
+  // Day Details
+  dayDetails: { marginBottom: 24 },
+  dayDetailsTitle: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 16,
+  },
+  slotCard: {
+    backgroundColor: "#1A2E22",
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#2B4035",
+  },
+  slotInfo: { flexDirection: "row", alignItems: "center", gap: 12 },
+  slotTime: { color: "#FFF", fontSize: 15, fontWeight: "600" },
+  bookedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(76,175,80,0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  bookedText: { color: "#4CAF50", fontSize: 12, fontWeight: "600" },
+  availableBadge: {
+    backgroundColor: "rgba(122,158,135,0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  availableText: { color: "#7A9E87", fontSize: 12, fontWeight: "600" },
+  slotPrice: { color: "#7A9E87", fontSize: 14 },
+  noSlotsText: { color: "#7A9E87", fontStyle: "italic", textAlign: "center" },
 });

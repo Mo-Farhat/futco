@@ -259,7 +259,7 @@ export default function SlotsScreen() {
         {slotsLoading ? (
           <ActivityIndicator
             size="large"
-            color="#E46A41"
+            color="#2D8B4E"
             style={{ marginTop: 40 }}
           />
         ) : (
@@ -332,7 +332,7 @@ export default function SlotsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9F7F4" },
+  container: { flex: 1, backgroundColor: "#F0F7F2" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   selectDateText: { fontSize: 14, color: "#888" },
-  calendarText: { fontSize: 14, color: "#E46A41", fontWeight: "600" },
+  calendarText: { fontSize: 14, color: "#2D8B4E", fontWeight: "600" },
   dateScroll: { gap: 12 },
   dateCard: {
     width: 65,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EEE",
   },
-  dateCardActive: { backgroundColor: "#E46A41", borderColor: "#E46A41" },
+  dateCardActive: { backgroundColor: "#2D8B4E", borderColor: "#2D8B4E" },
   dayText: { fontSize: 12, color: "#888", fontWeight: "600", marginBottom: 4 },
   dayTextActive: { color: "#FFD5C2" },
   dateNumText: { fontSize: 18, fontWeight: "700", color: "#1F1F1F" },
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 6,
   },
-  slotSelected: { backgroundColor: "#E46A41", borderColor: "#E46A41" },
+  slotSelected: { backgroundColor: "#2D8B4E", borderColor: "#2D8B4E" },
   slotTime: { fontSize: 15, fontWeight: "600", color: "#1F1F1F" },
   slotTimeDisabled: { fontSize: 15, fontWeight: "600", color: "#A0A0A0" },
   slotTimeSelected: { color: "#FFF" },
@@ -452,9 +452,9 @@ const styles = StyleSheet.create({
   },
   totalLabel: { fontSize: 14, color: "#888", marginBottom: 4 },
   totalAmount: { fontSize: 24, fontWeight: "700", color: "#1F1F1F" },
-  slotCount: { fontSize: 14, color: "#E46A41", fontWeight: "500" },
+  slotCount: { fontSize: 14, color: "#2D8B4E", fontWeight: "500" },
   continueButton: {
-    backgroundColor: "#E46A41",
+    backgroundColor: "#2D8B4E",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 24,

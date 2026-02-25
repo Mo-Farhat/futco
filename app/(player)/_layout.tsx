@@ -6,7 +6,7 @@ export default function PlayerTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#E46A41",
+        tabBarActiveTintColor: "#2D8B4E",
         tabBarInactiveTintColor: "#A0A0A0",
         headerShown: false,
         tabBarStyle: {

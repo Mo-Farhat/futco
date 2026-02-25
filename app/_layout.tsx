@@ -40,7 +40,7 @@ const MainLayout = () => {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#E46A41" />
+        <ActivityIndicator size="large" color="#2D8B4E" />
       </View>
     );
   }
