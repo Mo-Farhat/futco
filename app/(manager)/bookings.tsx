@@ -64,7 +64,7 @@ export default function ManagerBookingsScreen() {
 
       {filtered.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="receipt-outline" size={48} color="#3A3A55" />
+          <Ionicons name="receipt-outline" size={48} color="#2B4035" />
           <Text style={styles.emptyText}>No bookings found</Text>
         </View>
       ) : (
@@ -112,17 +112,17 @@ export default function ManagerBookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#1A1A2E", padding: 20 },
+  container: { flex: 1, backgroundColor: "#0D1B14", padding: 20 },
   header: { fontSize: 28, fontWeight: "700", color: "#FFF", marginBottom: 20 },
   filterRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
   filterTab: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
   },
-  filterTabActive: { backgroundColor: "#E46A41" },
-  filterText: { color: "#8888AA", fontWeight: "600" },
+  filterTabActive: { backgroundColor: "#2D8B4E" },
+  filterText: { color: "#7A9E87", fontWeight: "600" },
   filterTextActive: { color: "#FFF" },
   emptyState: {
     flex: 1,
@@ -130,9 +130,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 12,
   },
-  emptyText: { color: "#8888AA", fontSize: 16 },
+  emptyText: { color: "#7A9E87", fontSize: 16 },
   card: {
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
@@ -143,9 +143,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cardDate: { color: "#FFF", fontWeight: "600", fontSize: 16 },
-  cardTime: { color: "#8888AA", fontSize: 14, marginVertical: 4 },
-  cardId: { color: "#8888AA", fontSize: 12, fontFamily: "monospace" },
-  cardAmount: { color: "#E46A41", fontWeight: "700", fontSize: 15 },
+  cardTime: { color: "#7A9E87", fontSize: 14, marginVertical: 4 },
+  cardId: { color: "#7A9E87", fontSize: 12, fontFamily: "monospace" },
+  cardAmount: { color: "#2D8B4E", fontWeight: "700", fontSize: 15 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   confirmedBadge: { backgroundColor: "rgba(76,175,80,0.15)" },
   cancelledBadge: { backgroundColor: "rgba(255,82,82,0.15)" },

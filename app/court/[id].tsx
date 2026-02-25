@@ -32,7 +32,7 @@ export default function CourtDetailScreen() {
           { justifyContent: "center", alignItems: "center" },
         ]}
       >
-        <ActivityIndicator size="large" color="#E46A41" />
+        <ActivityIndicator size="large" color="#2D8B4E" />
       </View>
     );
   }
@@ -54,7 +54,7 @@ export default function CourtDetailScreen() {
           style={{
             marginTop: 20,
             padding: 12,
-            backgroundColor: "#E46A41",
+            backgroundColor: "#2D8B4E",
             borderRadius: 10,
           }}
           onPress={() => router.back()}
@@ -105,7 +105,7 @@ export default function CourtDetailScreen() {
             <Text style={styles.openText}>OPEN NOW</Text>
           </View>
           <View style={styles.ratingPill}>
-            <Ionicons name="star" size={14} color="#E46A41" />
+            <Ionicons name="star" size={14} color="#2D8B4E" />
             <Text style={styles.ratingText}>
               {court.rating} ({court.reviews} reviews)
             </Text>
@@ -116,7 +116,7 @@ export default function CourtDetailScreen() {
 
         <View style={styles.locationContainer}>
           <View style={styles.locationIconBg}>
-            <Ionicons name="location" size={20} color="#E46A41" />
+            <Ionicons name="location" size={20} color="#2D8B4E" />
           </View>
           <View>
             <Text style={styles.locationText}>{court.location}</Text>
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   priceValue: { fontSize: 24, fontWeight: "700", color: "#1F1F1F" },
   perHour: { fontSize: 14, color: "#888", fontWeight: "400" },
   bookButton: {
-    backgroundColor: "#E46A41",
+    backgroundColor: "#2D8B4E",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 32,

@@ -110,7 +110,7 @@ export default function DiscoveryScreen() {
         <Text style={styles.courtName}>{item.name}</Text>
         <View style={styles.courtMeta}>
           <View style={styles.ratingBadge}>
-            <Ionicons name="star" size={12} color="#E46A41" />
+            <Ionicons name="star" size={12} color="#2D8B4E" />
             <Text style={styles.ratingText}>{item.rating || "New"}</Text>
           </View>
           <Text style={styles.distanceText}>
@@ -147,7 +147,7 @@ export default function DiscoveryScreen() {
             style={styles.loginChip}
             onPress={() => router.push("/(auth)/login")}
           >
-            <Ionicons name="person-outline" size={16} color="#E46A41" />
+            <Ionicons name="person-outline" size={16} color="#2D8B4E" />
             <Text style={styles.loginChipText}>Log In</Text>
           </TouchableOpacity>
         )}
@@ -233,7 +233,7 @@ export default function DiscoveryScreen() {
         {loading && firestoreCourts.length === 0 ? (
           <ActivityIndicator
             size="large"
-            color="#E46A41"
+            color="#2D8B4E"
             style={{ marginTop: 40 }}
           />
         ) : filteredCourts.length === 0 ? (
@@ -256,7 +256,7 @@ export default function DiscoveryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9F7F4", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: "#F0F7F2", paddingHorizontal: 20 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#E46A41",
+    backgroundColor: "#2D8B4E",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -289,9 +289,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E46A41",
+    borderColor: "#2D8B4E",
   },
-  loginChipText: { color: "#E46A41", fontWeight: "600", fontSize: 13 },
+  loginChipText: { color: "#2D8B4E", fontWeight: "600", fontSize: 13 },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EEE",
   },
-  activeCategoryChip: { backgroundColor: "#E46A41", borderColor: "#E46A41" },
+  activeCategoryChip: { backgroundColor: "#2D8B4E", borderColor: "#2D8B4E" },
   categoryText: { fontSize: 14, fontWeight: "600", color: "#666" },
   activeCategoryText: { color: "#FFFFFF" },
   sectionHeader: {
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: { fontSize: 20, fontWeight: "600", color: "#1F1F1F" },
-  viewAll: { fontSize: 14, color: "#E46A41", fontWeight: "600" },
+  viewAll: { fontSize: 14, color: "#2D8B4E", fontWeight: "600" },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
@@ -369,13 +369,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#FFF5F0",
+    backgroundColor: "#E8F5E9",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
   ratingText: { fontSize: 13, fontWeight: "700", color: "#1F1F1F" },
   distanceText: { fontSize: 14, color: "#888" },
-  price: { fontSize: 18, fontWeight: "700", color: "#E46A41" },
+  price: { fontSize: 18, fontWeight: "700", color: "#2D8B4E" },
   perHour: { fontSize: 12, color: "#888", fontWeight: "400" },
 });

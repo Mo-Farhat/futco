@@ -131,10 +131,10 @@ export default function ManagerLoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#1A1A2E" },
+  container: { flex: 1, backgroundColor: "#0D1B14" },
   content: { flex: 1, justifyContent: "center", padding: 24 },
   badge: {
-    backgroundColor: "rgba(228,106,65,0.15)",
+    backgroundColor: "rgba(45,139,78,0.15)",
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 8,
@@ -142,25 +142,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   badgeText: {
-    color: "#E46A41",
+    color: "#2D8B4E",
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,
   },
   title: { fontSize: 32, fontWeight: "700", color: "#FFF", marginBottom: 8 },
-  subtitle: { fontSize: 16, color: "#8888AA", marginBottom: 32 },
+  subtitle: { fontSize: 16, color: "#7A9E87", marginBottom: 32 },
   inputContainer: { gap: 16, marginBottom: 32 },
   input: {
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
     color: "#FFF",
     borderWidth: 1,
-    borderColor: "#3A3A55",
+    borderColor: "#2B4035",
   },
   button: {
-    backgroundColor: "#E46A41",
+    backgroundColor: "#2D8B4E",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
   toggleButton: { alignItems: "center", marginBottom: 24 },
-  toggleText: { color: "#8888AA", fontSize: 14 },
+  toggleText: { color: "#7A9E87", fontSize: 14 },
   backButton: { alignItems: "center" },
-  backText: { color: "#E46A41", fontSize: 14, fontWeight: "500" },
+  backText: { color: "#2D8B4E", fontSize: 14, fontWeight: "500" },
 });

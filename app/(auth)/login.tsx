@@ -122,7 +122,7 @@ export default function LoginScreen() {
           onPress={() => router.push("/(manager-auth)/login")}
           style={{ alignItems: "center", marginTop: 24 }}
         >
-          <Text style={{ color: "#E46A41", fontSize: 14, fontWeight: "500" }}>
+          <Text style={{ color: "#2D8B4E", fontSize: 14, fontWeight: "500" }}>
             Are you a court manager? Login here →
           </Text>
         </TouchableOpacity>
@@ -134,7 +134,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9F7F4",
+    backgroundColor: "#F0F7F2",
   },
   content: {
     flex: 1,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     borderColor: "#EAEAEA",
   },
   button: {
-    backgroundColor: "#E46A41",
+    backgroundColor: "#2D8B4E",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",

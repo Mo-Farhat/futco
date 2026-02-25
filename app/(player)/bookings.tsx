@@ -5,6 +5,7 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     StyleSheet,
     Text,
@@ -15,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { FEATURED_COURTS } from "../../constants/data";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../lib/firebaseConfig";
+import { generateAndShareReceipt } from "../../lib/receiptGenerator";
 
 export default function BookingsScreen() {
   const { user } = useAuth();
@@ -57,6 +59,22 @@ export default function BookingsScreen() {
     return unsubscribe;
   }, []);
 
+  const handleDownloadReceipt = async (booking: any) => {
+    try {
+      const court = FEATURED_COURTS.find((c) => c.id === booking.courtId);
+      await generateAndShareReceipt({
+        id: booking.id,
+        courtName: court?.name || "Premium Court",
+        date: booking.date,
+        time: booking.time,
+        amountPaid: booking.amountPaid,
+        status: booking.status,
+      });
+    } catch (error) {
+      Alert.alert("Error", "Could not generate receipt.");
+    }
+  };
+
   const renderBooking = ({ item }: { item: any }) => {
     const court = FEATURED_COURTS.find((c) => c.id === item.courtId);
     return (
@@ -96,7 +114,9 @@ export default function BookingsScreen() {
         <View style={styles.divider} />
         <View style={styles.footer}>
           <Text style={styles.bookingId}>ID: {item.id.slice(0, 8)}</Text>
-          <Ionicons name="download-outline" size={20} color="#E46A41" />
+          <TouchableOpacity onPress={() => handleDownloadReceipt(item)}>
+            <Ionicons name="download-outline" size={20} color="#2D8B4E" />
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -120,7 +140,7 @@ export default function BookingsScreen() {
       ) : loading ? (
         <ActivityIndicator
           size="large"
-          color="#E46A41"
+          color="#2D8B4E"
           style={{ marginTop: 20 }}
         />
       ) : bookings.length === 0 ? (
@@ -141,7 +161,7 @@ export default function BookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9F7F4", padding: 20 },
+  container: { flex: 1, backgroundColor: "#F0F7F2", padding: 20 },
   title: {
     fontSize: 28,
     fontWeight: "700",
@@ -189,7 +209,7 @@ const styles = StyleSheet.create({
   },
   emptyText: { marginTop: 16, fontSize: 16, color: "#999" },
   loginButton: {
-    backgroundColor: "#E46A41",
+    backgroundColor: "#2D8B4E",
     paddingHorizontal: 40,
     paddingVertical: 14,
     borderRadius: 12,

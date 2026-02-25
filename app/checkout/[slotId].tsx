@@ -119,7 +119,7 @@ export default function CheckoutScreen() {
         {/* Booking Details Card */}
         <View style={styles.card}>
           <View style={styles.cardHeaderIcon}>
-            <Ionicons name="tennisball-outline" size={24} color="#E46A41" />
+            <Ionicons name="tennisball-outline" size={24} color="#2D8B4E" />
           </View>
           <Text style={styles.sectionLabel}>BOOKING DETAILS</Text>
           <Text style={styles.courtName}>{court.name}</Text>
@@ -180,7 +180,7 @@ export default function CheckoutScreen() {
             <Text style={styles.paymentType}>Apple Pay</Text>
             <Text style={styles.paymentDefault}>Default</Text>
           </View>
-          <Ionicons name="radio-button-on" size={24} color="#E46A41" />
+          <Ionicons name="radio-button-on" size={24} color="#2D8B4E" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.paymentMethodCard}>
@@ -213,7 +213,7 @@ export default function CheckoutScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9F7F4" },
+  container: { flex: 1, backgroundColor: "#F0F7F2" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   totalLabel: { fontSize: 13, color: "#888", marginBottom: 4 },
-  totalAmount: { fontSize: 28, fontWeight: "700", color: "#E46A41" },
+  totalAmount: { fontSize: 28, fontWeight: "700", color: "#2D8B4E" },
   checkIconWrapper: {
     width: 32,
     height: 32,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EEE",
   },
-  paymentMethodActive: { borderColor: "#E46A41" },
+  paymentMethodActive: { borderColor: "#2D8B4E" },
   paymentIconBg: {
     width: 40,
     height: 40,
@@ -356,18 +356,18 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#F9F7F4",
+    backgroundColor: "#F0F7F2",
     padding: 24,
     paddingBottom: 40,
   },
   payButton: {
-    backgroundColor: "#E46A41",
+    backgroundColor: "#2D8B4E",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 18,
     borderRadius: 30,
-    shadowColor: "#E46A41",
+    shadowColor: "#2D8B4E",
     shadowOpacity: 0.3,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },

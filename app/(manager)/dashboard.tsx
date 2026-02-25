@@ -67,7 +67,7 @@ export default function ManagerDashboard() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#E46A41" />
+        <ActivityIndicator size="large" color="#2D8B4E" />
       </SafeAreaView>
     );
   }
@@ -79,7 +79,7 @@ export default function ManagerDashboard() {
       {/* Stats Grid */}
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Ionicons name="tennisball-outline" size={24} color="#E46A41" />
+          <Ionicons name="tennisball-outline" size={24} color="#2D8B4E" />
           <Text style={styles.statValue}>{courts.length}</Text>
           <Text style={styles.statLabel}>Courts</Text>
         </View>
@@ -106,7 +106,7 @@ export default function ManagerDashboard() {
       <Text style={styles.sectionTitle}>Recent Bookings</Text>
       {bookings.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="receipt-outline" size={48} color="#3A3A55" />
+          <Ionicons name="receipt-outline" size={48} color="#2B4035" />
           <Text style={styles.emptyText}>No bookings yet</Text>
         </View>
       ) : (
@@ -137,7 +137,7 @@ export default function ManagerDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1A1A2E",
+    backgroundColor: "#0D1B14",
     padding: 20,
   },
   header: {
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   statCard: {
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     borderRadius: 16,
     padding: 16,
     width: "47%",
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statValue: { fontSize: 28, fontWeight: "700", color: "#FFF" },
-  statLabel: { fontSize: 12, color: "#8888AA", fontWeight: "500" },
+  statLabel: { fontSize: 12, color: "#7A9E87", fontWeight: "500" },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
@@ -169,9 +169,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emptyState: { alignItems: "center", marginTop: 40, gap: 12 },
-  emptyText: { color: "#8888AA", fontSize: 16 },
+  emptyText: { color: "#7A9E87", fontSize: 16 },
   bookingCard: {
-    backgroundColor: "#2A2A42",
+    backgroundColor: "#1A2E22",
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
@@ -182,8 +182,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   bookingDate: { color: "#FFF", fontWeight: "600", fontSize: 15 },
-  bookingAmount: { color: "#E46A41", fontWeight: "700", fontSize: 15 },
-  bookingTime: { color: "#8888AA", fontSize: 13 },
+  bookingAmount: { color: "#2D8B4E", fontWeight: "700", fontSize: 15 },
+  bookingTime: { color: "#7A9E87", fontSize: 13 },
   bookingStatus: {
     color: "#4CAF50",
     fontSize: 11,

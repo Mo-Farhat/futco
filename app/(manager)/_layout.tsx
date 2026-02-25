@@ -7,14 +7,14 @@ export default function ManagerLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#1A1A2E",
-          borderTopColor: "#2A2A42",
+          backgroundColor: "#0D1B14",
+          borderTopColor: "#1A2E22",
           height: 85,
           paddingBottom: 30,
           paddingTop: 10,
         },
-        tabBarActiveTintColor: "#E46A41",
-        tabBarInactiveTintColor: "#8888AA",
+        tabBarActiveTintColor: "#2D8B4E",
+        tabBarInactiveTintColor: "#7A9E87",
       }}
     >
       <Tabs.Screen

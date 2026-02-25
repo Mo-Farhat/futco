@@ -20,7 +20,7 @@ function generateReceiptHTML(booking: BookingData): string {
       <style>
         body { font-family: -apple-system, sans-serif; padding: 40px; color: #1F1F1F; }
         .header { text-align: center; margin-bottom: 30px; }
-        .logo { font-size: 28px; font-weight: 700; color: #E46A41; }
+        .logo { font-size: 28px; font-weight: 700; color: #2D8B4E; }
         .subtitle { color: #888; margin-top: 4px; }
         .divider { border-top: 2px solid #F0F0F0; margin: 20px 0; }
         .row { display: flex; justify-content: space-between; padding: 8px 0; }
