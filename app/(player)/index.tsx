@@ -1,0 +1,320 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useMemo, useState } from "react";
+import {
+    ActivityIndicator,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { FEATURED_COURTS as FALLBACK_COURTS } from "../../constants/data";
+import { Court, useCourts } from "../../hooks/useCourts";
+
+const CATEGORIES = ["All", "Futsal", "Badminton", "Tennis"];
+
+export default function DiscoveryScreen() {
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const { courts: firestoreCourts, loading } = useCourts();
+
+  // Use Firestore courts if available, otherwise fall back to local data
+  const courts =
+    firestoreCourts.length > 0 ? firestoreCourts : (FALLBACK_COURTS as Court[]);
+
+  // Filter by category and search query
+  const filteredCourts = useMemo(() => {
+    return courts.filter((court) => {
+      const matchesCategory =
+        selectedCategory === "All" ||
+        court.tags?.some((tag) =>
+          tag.toLowerCase().includes(selectedCategory.toLowerCase()),
+        ) ||
+        court.sport?.toLowerCase() === selectedCategory.toLowerCase();
+      const matchesSearch =
+        !searchQuery ||
+        court.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [courts, selectedCategory, searchQuery]);
+
+  const renderCourtCard = (item: Court) => (
+    <TouchableOpacity
+      key={item.id}
+      style={styles.card}
+      onPress={() => router.push(`/court/${item.id}`)}
+      activeOpacity={0.9}
+    >
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: item.image }}
+          style={styles.cardImage}
+          resizeMode="cover"
+        />
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>POPULAR</Text>
+        </View>
+        <View style={styles.ratingContainer}>
+          <Ionicons name="star" size={14} color="#1F1F1F" />
+          <Text style={styles.ratingText}>{item.rating}</Text>
+        </View>
+      </View>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.courtName}>{item.name}</Text>
+          <Text style={styles.price}>
+            LKR {item.price}
+            <Text style={styles.priceUnit}>/hr</Text>
+          </Text>
+        </View>
+        <View style={styles.locationRow}>
+          <Ionicons name="location-outline" size={16} color="#888" />
+          <Text style={styles.distance}>{item.distance}</Text>
+        </View>
+        <View style={styles.tagsRow}>
+          {item.tags.map((tag, index) => (
+            <View key={index} style={styles.tag}>
+              <Text style={styles.tagText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.dateText}>SUNDAY, OCT 24</Text>
+          <Text style={styles.greeting}>Good Morning, Alex</Text>
+        </View>
+        <Image
+          source={{ uri: "https://i.pravatar.cc/100?img=5" }}
+          style={styles.avatar}
+        />
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Ionicons
+          name="search-outline"
+          size={20}
+          color="#888"
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Find a court, field, or gym..."
+          placeholderTextColor="#999"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <TouchableOpacity style={styles.filterButton}>
+          <Ionicons name="options-outline" size={20} color="#1F1F1F" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Categories */}
+      <View style={{ marginBottom: 24 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingRight: 20 }}
+        >
+          {CATEGORIES.map((cat, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.categoryChip,
+                selectedCategory === cat && styles.activeCategoryChip,
+              ]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              {cat === "Tennis" && (
+                <Ionicons
+                  name="tennisball-outline"
+                  size={16}
+                  color={selectedCategory === cat ? "#FFF" : "#666"}
+                  style={{ marginRight: 6 }}
+                />
+              )}
+              {cat === "Futsal" && (
+                <Ionicons
+                  name="football-outline"
+                  size={16}
+                  color={selectedCategory === cat ? "#FFF" : "#666"}
+                  style={{ marginRight: 6 }}
+                />
+              )}
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === cat && styles.activeCategoryText,
+                ]}
+              >
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Featured Courts</Text>
+          <TouchableOpacity>
+            <Text style={styles.viewAll}>View all</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Court Cards */}
+        {loading && firestoreCourts.length === 0 ? (
+          <ActivityIndicator
+            size="large"
+            color="#E46A41"
+            style={{ marginTop: 40 }}
+          />
+        ) : filteredCourts.length === 0 ? (
+          <Text
+            style={{
+              textAlign: "center",
+              color: "#999",
+              marginTop: 40,
+              fontSize: 16,
+            }}
+          >
+            No courts found
+          </Text>
+        ) : (
+          filteredCourts.map((item) => renderCourtCard(item))
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#F9F7F4", paddingHorizontal: 20 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  dateText: {
+    fontSize: 13,
+    color: "#888",
+    fontWeight: "600",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  greeting: { fontSize: 24, fontWeight: "700", color: "#1F1F1F" },
+  avatar: { width: 44, height: 44, borderRadius: 22 },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, fontSize: 16, color: "#1F1F1F" },
+  filterButton: { padding: 4 },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 25,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#EEE",
+  },
+  activeCategoryChip: { backgroundColor: "#E46A41", borderColor: "#E46A41" },
+  categoryText: { fontSize: 14, fontWeight: "600", color: "#666" },
+  activeCategoryText: { color: "#FFFFFF" },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: { fontSize: 20, fontWeight: "600", color: "#1F1F1F" },
+  viewAll: { fontSize: 14, color: "#E46A41", fontWeight: "600" },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    marginBottom: 20,
+  },
+  imageContainer: { height: 180, width: "100%", position: "relative" },
+  cardImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  badge: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    backgroundColor: "#E46A41",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  badgeText: { color: "#FFF", fontSize: 12, fontWeight: "700" },
+  ratingContainer: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    backgroundColor: "#FFF",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  ratingText: { fontSize: 12, fontWeight: "700", marginLeft: 4 },
+  cardContent: { padding: 16 },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  courtName: { fontSize: 18, fontWeight: "700", color: "#1F1F1F", flex: 1 },
+  price: { fontSize: 18, fontWeight: "700", color: "#E46A41" },
+  priceUnit: { fontSize: 12, color: "#888", fontWeight: "400" },
+  locationRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  distance: { fontSize: 14, color: "#888", marginLeft: 4 },
+  tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  tag: {
+    backgroundColor: "#F0F0F0",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  tagText: { fontSize: 12, color: "#666", fontWeight: "500" },
+});
