@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
+    updateProfile,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useState } from "react";
@@ -20,6 +21,7 @@ import { auth, db } from "../../lib/firebaseConfig";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLogin, setIsLogin] = useState(true);
@@ -29,12 +31,22 @@ export default function LoginScreen() {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
+        if (!fullName.trim()) {
+          Alert.alert("Error", "Please enter your full name.");
+          return;
+        }
         const userCredential = await createUserWithEmailAndPassword(
           auth,
           email,
           password,
         );
+        // Set display name on Firebase Auth profile
+        await updateProfile(userCredential.user, {
+          displayName: fullName.trim(),
+        });
+        // Create Firestore user doc
         await setDoc(doc(db, "Users", userCredential.user.uid), {
+          name: fullName.trim(),
           email: userCredential.user.email,
           role: "player",
           createdAt: new Date().toISOString(),
@@ -60,6 +72,16 @@ export default function LoginScreen() {
         </Text>
 
         <View style={styles.inputContainer}>
+          {!isLogin && (
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              placeholderTextColor="#A0A0A0"
+              value={fullName}
+              onChangeText={setFullName}
+              autoCapitalize="words"
+            />
+          )}
           <TextInput
             style={styles.input}
             placeholder="Email"

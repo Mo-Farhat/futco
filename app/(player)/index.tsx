@@ -13,20 +13,55 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FEATURED_COURTS as FALLBACK_COURTS } from "../../constants/data";
+import { useAuth } from "../../context/AuthContext";
 import { Court, useCourts } from "../../hooks/useCourts";
 
 const CATEGORIES = ["All", "Futsal", "Badminton", "Tennis"];
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+}
+
+function getFormattedDate(): string {
+  const days = [
+    "SUNDAY",
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
+  ];
+  const months = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+  ];
+  const now = new Date();
+  return `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+}
 
 export default function DiscoveryScreen() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
+  const { user } = useAuth();
   const { courts: firestoreCourts, loading } = useCourts();
 
-  // Use Firestore courts if available, otherwise fall back to local data
-  const courts =
-    firestoreCourts.length > 0 ? firestoreCourts : (FALLBACK_COURTS as Court[]);
+  // Use Firestore courts directly — no fallback to hardcoded data
+  const courts = firestoreCourts;
 
   // Filter by category and search query
   const filteredCourts = useMemo(() => {
@@ -44,6 +79,12 @@ export default function DiscoveryScreen() {
     });
   }, [courts, selectedCategory, searchQuery]);
 
+  // Dynamic greeting and user info
+  const greeting = getGreeting();
+  const dateText = getFormattedDate();
+  const firstName = user?.displayName?.split(" ")[0] || "";
+  const initial = firstName ? firstName[0].toUpperCase() : null;
+
   const renderCourtCard = (item: Court) => (
     <TouchableOpacity
       key={item.id}
@@ -57,33 +98,29 @@ export default function DiscoveryScreen() {
           style={styles.cardImage}
           resizeMode="cover"
         />
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>POPULAR</Text>
-        </View>
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={14} color="#1F1F1F" />
-          <Text style={styles.ratingText}>{item.rating}</Text>
-        </View>
       </View>
       <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.courtName}>{item.name}</Text>
-          <Text style={styles.price}>
-            LKR {item.price}
-            <Text style={styles.priceUnit}>/hr</Text>
-          </Text>
-        </View>
-        <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={16} color="#888" />
-          <Text style={styles.distance}>{item.distance}</Text>
-        </View>
-        <View style={styles.tagsRow}>
-          {item.tags.map((tag, index) => (
-            <View key={index} style={styles.tag}>
+        <View style={styles.tagRow}>
+          {item.tags?.map((tag, i) => (
+            <View key={i} style={styles.tag}>
               <Text style={styles.tagText}>{tag}</Text>
             </View>
           ))}
         </View>
+        <Text style={styles.courtName}>{item.name}</Text>
+        <View style={styles.courtMeta}>
+          <View style={styles.ratingBadge}>
+            <Ionicons name="star" size={12} color="#E46A41" />
+            <Text style={styles.ratingText}>{item.rating || "New"}</Text>
+          </View>
+          <Text style={styles.distanceText}>
+            {item.distance || item.location}
+          </Text>
+        </View>
+        <Text style={styles.price}>
+          LKR {item.price?.toLocaleString()}
+          <Text style={styles.perHour}> / hour</Text>
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -91,16 +128,29 @@ export default function DiscoveryScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
+
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.dateText}>SUNDAY, OCT 24</Text>
-          <Text style={styles.greeting}>Good Morning, Alex</Text>
+          <Text style={styles.dateText}>{dateText}</Text>
+          <Text style={styles.greeting}>
+            {greeting}
+            {firstName ? `, ${firstName}` : ""}
+          </Text>
         </View>
-        <Image
-          source={{ uri: "https://i.pravatar.cc/100?img=5" }}
-          style={styles.avatar}
-        />
+        {user && initial ? (
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarInitial}>{initial}</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.loginChip}
+            onPress={() => router.push("/(auth)/login")}
+          >
+            <Ionicons name="person-outline" size={16} color="#E46A41" />
+            <Text style={styles.loginChipText}>Log In</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Search Bar */}
@@ -222,7 +272,26 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   greeting: { fontSize: 24, fontWeight: "700", color: "#1F1F1F" },
-  avatar: { width: 44, height: 44, borderRadius: 22 },
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#E46A41",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInitial: { color: "#FFF", fontSize: 18, fontWeight: "700" },
+  loginChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E46A41",
+  },
+  loginChipText: { color: "#E46A41", fontWeight: "600", fontSize: 13 },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -275,41 +344,8 @@ const styles = StyleSheet.create({
   },
   imageContainer: { height: 180, width: "100%", position: "relative" },
   cardImage: { width: "100%", height: "100%", resizeMode: "cover" },
-  badge: {
-    position: "absolute",
-    top: 16,
-    left: 16,
-    backgroundColor: "#E46A41",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  badgeText: { color: "#FFF", fontSize: 12, fontWeight: "700" },
-  ratingContainer: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    backgroundColor: "#FFF",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  ratingText: { fontSize: 12, fontWeight: "700", marginLeft: 4 },
   cardContent: { padding: 16 },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  courtName: { fontSize: 18, fontWeight: "700", color: "#1F1F1F", flex: 1 },
-  price: { fontSize: 18, fontWeight: "700", color: "#E46A41" },
-  priceUnit: { fontSize: 12, color: "#888", fontWeight: "400" },
-  locationRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  distance: { fontSize: 14, color: "#888", marginLeft: 4 },
-  tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  tagRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
   tag: {
     backgroundColor: "#F0F0F0",
     paddingHorizontal: 12,
@@ -317,4 +353,29 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   tagText: { fontSize: 12, color: "#666", fontWeight: "500" },
+  courtName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F1F1F",
+    marginBottom: 8,
+  },
+  courtMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 8,
+  },
+  ratingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FFF5F0",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  ratingText: { fontSize: 13, fontWeight: "700", color: "#1F1F1F" },
+  distanceText: { fontSize: 14, color: "#888" },
+  price: { fontSize: 18, fontWeight: "700", color: "#E46A41" },
+  perHour: { fontSize: 12, color: "#888", fontWeight: "400" },
 });

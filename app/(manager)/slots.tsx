@@ -2,15 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import {
     addDoc,
     collection,
+    getDocs,
     onSnapshot,
     query,
     where,
 } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    FlatList,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -20,12 +21,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { db } from "../../lib/firebaseConfig";
 
-// Generate time slots from open to close
-function generateTimeSlots(openTime: string, closeTime: string) {
+// --- Helpers ---
+
+function generateTimeSlots(startHour: number, endHour: number): string[] {
   const slots: string[] = [];
-  let [h] = openTime.split(":").map(Number);
-  const [endH] = closeTime.split(":").map(Number);
-  while (h < endH) {
+  let h = startHour;
+  while (h < endHour) {
     const start = `${String(h).padStart(2, "0")}:00`;
     const end = `${String(h + 1).padStart(2, "0")}:00`;
     slots.push(`${start} - ${end}`);
@@ -34,30 +35,65 @@ function generateTimeSlots(openTime: string, closeTime: string) {
   return slots;
 }
 
-// Get upcoming 7 days
-function getUpcomingDates() {
-  const result: string[] = [];
-  const today = new Date();
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    result.push(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-    );
-  }
-  return result;
+function formatDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const HOUR_OPTIONS = Array.from({ length: 19 }, (_, i) => i + 5); // 5 AM to 11 PM
+
+function getCalendarDays(year: number, month: number) {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days: (Date | null)[] = [];
+
+  // Leading blanks
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let d = 1; d <= daysInMonth; d++) days.push(new Date(year, month, d));
+
+  return days;
+}
+
+// --- Component ---
 
 export default function ManagerSlotsScreen() {
   const { user } = useAuth();
   const [courts, setCourts] = useState<any[]>([]);
   const [selectedCourt, setSelectedCourt] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState(getUpcomingDates()[0]);
-  const [existingSlots, setExistingSlots] = useState<any[]>([]);
+  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
+  const [startHour, setStartHour] = useState(6);
+  const [endHour, setEndHour] = useState(22);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [existingSlots, setExistingSlots] = useState<any[]>([]);
 
-  const dates = getUpcomingDates();
+  // Calendar navigation
+  const today = new Date();
+  const [calMonth, setCalMonth] = useState(today.getMonth());
+  const [calYear, setCalYear] = useState(today.getFullYear());
+
+  const calendarDays = useMemo(
+    () => getCalendarDays(calYear, calMonth),
+    [calYear, calMonth],
+  );
+
+  const todayStr = formatDate(today);
 
   // Fetch manager's courts
   useEffect(() => {
@@ -69,60 +105,148 @@ export default function ManagerSlotsScreen() {
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setCourts(data);
-      if (data.length > 0 && !selectedCourt) {
-        setSelectedCourt(data[0]);
-      }
+      if (data.length > 0 && !selectedCourt) setSelectedCourt(data[0]);
       setLoading(false);
     });
     return unsub;
   }, [user]);
 
-  // Fetch existing slots for selected court + date
+  // Fetch existing slots for selected court (current month view)
   useEffect(() => {
-    if (!selectedCourt || !selectedDate) return;
+    if (!selectedCourt) return;
+    const monthStart = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-01`;
+    const monthEnd = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-31`;
     const q = query(
       collection(db, "Slots"),
       where("courtId", "==", selectedCourt.id),
-      where("date", "==", selectedDate),
+      where("date", ">=", monthStart),
+      where("date", "<=", monthEnd),
     );
     const unsub = onSnapshot(q, (snap) => {
       setExistingSlots(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return unsub;
-  }, [selectedCourt, selectedDate]);
+  }, [selectedCourt, calMonth, calYear]);
 
-  const handleGenerateSlots = async () => {
-    if (!selectedCourt) return;
-    const openTime = selectedCourt.openTime || "09:00";
-    const closeTime = selectedCourt.closeTime || "21:00";
-    const times = generateTimeSlots(openTime, closeTime);
+  // Count existing slots per date
+  const slotCountByDate = useMemo(() => {
+    const map: Record<string, number> = {};
+    existingSlots.forEach((s) => {
+      map[s.date] = (map[s.date] || 0) + 1;
+    });
+    return map;
+  }, [existingSlots]);
 
-    const existingTimes = existingSlots.map((s) => s.time);
-    const newTimes = times.filter((t) => !existingTimes.includes(t));
+  // Toggle date selection
+  const toggleDate = (dateStr: string) => {
+    setSelectedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(dateStr)) next.delete(dateStr);
+      else next.add(dateStr);
+      return next;
+    });
+  };
 
-    if (newTimes.length === 0) {
-      Alert.alert("Info", "All slots already exist for this date.");
+  // Select all days in visible month (from today onwards)
+  const selectAllMonth = () => {
+    const newSet = new Set(selectedDates);
+    calendarDays.forEach((d) => {
+      if (d && formatDate(d) >= todayStr) {
+        newSet.add(formatDate(d));
+      }
+    });
+    setSelectedDates(newSet);
+  };
+
+  const clearSelection = () => setSelectedDates(new Set());
+
+  // Navigate months
+  const prevMonth = () => {
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear(calYear - 1);
+    } else setCalMonth(calMonth - 1);
+  };
+  const nextMonth = () => {
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear(calYear + 1);
+    } else setCalMonth(calMonth + 1);
+  };
+
+  // Bulk generate
+  const handleBulkGenerate = async () => {
+    if (!selectedCourt || selectedDates.size === 0) {
+      Alert.alert("Select Dates", "Please select at least one date.");
+      return;
+    }
+    if (startHour >= endHour) {
+      Alert.alert("Invalid Time", "Start time must be before end time.");
       return;
     }
 
-    setGenerating(true);
-    try {
-      const promises = newTimes.map((time) =>
-        addDoc(collection(db, "Slots"), {
-          courtId: selectedCourt.id,
-          date: selectedDate,
-          time,
-          isBooked: false,
-          price: selectedCourt.price || 4000,
-        }),
-      );
-      await Promise.all(promises);
-      Alert.alert("Success", `${newTimes.length} slot(s) generated!`);
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    } finally {
-      setGenerating(false);
-    }
+    const timeSlots = generateTimeSlots(startHour, endHour);
+    const dates = Array.from(selectedDates).sort();
+
+    Alert.alert(
+      "Generate Slots",
+      `Create up to ${timeSlots.length} slot(s) × ${dates.length} day(s) = ${timeSlots.length * dates.length} slots?\n\nTime: ${String(startHour).padStart(2, "0")}:00 – ${String(endHour).padStart(2, "0")}:00`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Generate",
+          onPress: async () => {
+            setGenerating(true);
+            let created = 0;
+            let skipped = 0;
+
+            try {
+              for (const date of dates) {
+                // Get existing slots for this date
+                const existingSnap = await getDocs(
+                  query(
+                    collection(db, "Slots"),
+                    where("courtId", "==", selectedCourt.id),
+                    where("date", "==", date),
+                  ),
+                );
+                const existingTimes = existingSnap.docs.map(
+                  (d) => d.data().time,
+                );
+
+                const newSlots = timeSlots.filter(
+                  (t) => !existingTimes.includes(t),
+                );
+
+                const promises = newSlots.map((time) =>
+                  addDoc(collection(db, "Slots"), {
+                    courtId: selectedCourt.id,
+                    date,
+                    time,
+                    isBooked: false,
+                    price: selectedCourt.price || 4000,
+                  }),
+                );
+
+                await Promise.all(promises);
+                created += newSlots.length;
+                skipped += existingTimes.length;
+              }
+
+              Alert.alert(
+                "Done!",
+                `✅ ${created} slot(s) created${skipped > 0 ? `\n⏭ ${skipped} existing slot(s) skipped` : ""}`,
+              );
+              setSelectedDates(new Set());
+            } catch (error: any) {
+              Alert.alert("Error", error.message);
+            } finally {
+              setGenerating(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   if (loading) {
@@ -150,112 +274,241 @@ export default function ManagerSlotsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Slot Management</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={styles.header}>Slot Management</Text>
 
-      {/* Court Picker */}
-      <FlatList
-        horizontal
-        data={courts}
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id}
-        style={{ marginBottom: 16, maxHeight: 44 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.courtChip,
-              selectedCourt?.id === item.id && styles.courtChipActive,
-            ]}
-            onPress={() => setSelectedCourt(item)}
-          >
-            <Text
+        {/* Court Picker */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 20, flexGrow: 0 }}
+        >
+          {courts.map((item) => (
+            <TouchableOpacity
+              key={item.id}
               style={[
-                styles.courtChipText,
-                selectedCourt?.id === item.id && styles.courtChipTextActive,
+                styles.courtChip,
+                selectedCourt?.id === item.id && styles.courtChipActive,
               ]}
+              onPress={() => setSelectedCourt(item)}
             >
-              {item.name}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-
-      {/* Date Picker */}
-      <FlatList
-        horizontal
-        data={dates}
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item}
-        style={{ marginBottom: 20, maxHeight: 44 }}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.dateChip,
-              selectedDate === item && styles.dateChipActive,
-            ]}
-            onPress={() => setSelectedDate(item)}
-          >
-            <Text
-              style={[
-                styles.dateChipText,
-                selectedDate === item && styles.dateChipTextActive,
-              ]}
-            >
-              {item.slice(5)} {/* Shows MM-DD */}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
-
-      {/* Generate Slots Button */}
-      <TouchableOpacity
-        style={styles.generateButton}
-        onPress={handleGenerateSlots}
-        disabled={generating}
-      >
-        {generating ? (
-          <ActivityIndicator color="#FFF" />
-        ) : (
-          <>
-            <Ionicons name="flash" size={20} color="#FFF" />
-            <Text style={styles.generateText}>Generate Slots</Text>
-          </>
-        )}
-      </TouchableOpacity>
-
-      {/* Existing Slots */}
-      <Text style={styles.sectionTitle}>
-        Existing Slots ({existingSlots.length})
-      </Text>
-      <FlatList
-        data={existingSlots.sort((a, b) => a.time.localeCompare(b.time))}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 20 }}
-        renderItem={({ item }) => (
-          <View style={styles.slotRow}>
-            <Text style={styles.slotTime}>{item.time}</Text>
-            <View style={styles.slotRight}>
-              <Text style={styles.slotPrice}>
-                LKR {item.price?.toLocaleString()}
-              </Text>
-              <View
+              <Text
                 style={[
-                  styles.statusBadge,
-                  item.isBooked ? styles.bookedBadge : styles.availableBadge,
+                  styles.courtChipText,
+                  selectedCourt?.id === item.id && styles.courtChipTextActive,
                 ]}
+              >
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Calendar Header */}
+        <View style={styles.calHeader}>
+          <TouchableOpacity onPress={prevMonth}>
+            <Ionicons name="chevron-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.calTitle}>
+            {MONTHS[calMonth]} {calYear}
+          </Text>
+          <TouchableOpacity onPress={nextMonth}>
+            <Ionicons name="chevron-forward" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Day names row */}
+        <View style={styles.dayNamesRow}>
+          {DAYS.map((d) => (
+            <Text key={d} style={styles.dayName}>
+              {d}
+            </Text>
+          ))}
+        </View>
+
+        {/* Calendar Grid */}
+        <View style={styles.calGrid}>
+          {calendarDays.map((day, i) => {
+            if (!day) {
+              return <View key={`blank-${i}`} style={styles.calCell} />;
+            }
+            const dateStr = formatDate(day);
+            const isPast = dateStr < todayStr;
+            const isSelected = selectedDates.has(dateStr);
+            const isToday = dateStr === todayStr;
+            const slotCount = slotCountByDate[dateStr] || 0;
+
+            return (
+              <TouchableOpacity
+                key={dateStr}
+                style={[
+                  styles.calCell,
+                  isSelected && styles.calCellSelected,
+                  isToday && !isSelected && styles.calCellToday,
+                  isPast && styles.calCellPast,
+                ]}
+                onPress={() => !isPast && toggleDate(dateStr)}
+                disabled={isPast}
               >
                 <Text
                   style={[
-                    styles.statusText,
-                    item.isBooked ? styles.bookedText : styles.availableText,
+                    styles.calDateText,
+                    isSelected && styles.calDateTextSelected,
+                    isPast && styles.calDateTextPast,
                   ]}
                 >
-                  {item.isBooked ? "Booked" : "Open"}
+                  {day.getDate()}
                 </Text>
-              </View>
-            </View>
+                {slotCount > 0 && (
+                  <View style={styles.slotDot}>
+                    <Text style={styles.slotDotText}>{slotCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.quickBtn} onPress={selectAllMonth}>
+            <Ionicons name="checkbox-outline" size={16} color="#E46A41" />
+            <Text style={styles.quickBtnText}>Select All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickBtn} onPress={clearSelection}>
+            <Ionicons name="close-circle-outline" size={16} color="#8888AA" />
+            <Text style={[styles.quickBtnText, { color: "#8888AA" }]}>
+              Clear
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.selectionCount}>
+            {selectedDates.size} day{selectedDates.size !== 1 ? "s" : ""}{" "}
+            selected
+          </Text>
+        </View>
+
+        {/* Time Range */}
+        <TouchableOpacity
+          style={styles.timeRangeCard}
+          onPress={() => setShowTimePicker(!showTimePicker)}
+        >
+          <View style={styles.timeRangeHeader}>
+            <Ionicons name="time-outline" size={20} color="#E46A41" />
+            <Text style={styles.timeRangeTitle}>Operating Hours</Text>
+            <Ionicons
+              name={showTimePicker ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#8888AA"
+            />
+          </View>
+          <Text style={styles.timeRangeValue}>
+            {String(startHour).padStart(2, "0")}:00 –{" "}
+            {String(endHour).padStart(2, "0")}:00
+          </Text>
+        </TouchableOpacity>
+
+        {showTimePicker && (
+          <View style={styles.timePickerContainer}>
+            <Text style={styles.timePickerLabel}>Start Time</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 16 }}
+            >
+              {HOUR_OPTIONS.map((h) => (
+                <TouchableOpacity
+                  key={`start-${h}`}
+                  style={[
+                    styles.hourChip,
+                    startHour === h && styles.hourChipActive,
+                  ]}
+                  onPress={() => setStartHour(h)}
+                >
+                  <Text
+                    style={[
+                      styles.hourChipText,
+                      startHour === h && styles.hourChipTextActive,
+                    ]}
+                  >
+                    {String(h).padStart(2, "0")}:00
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.timePickerLabel}>End Time</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {HOUR_OPTIONS.filter((h) => h > startHour).map((h) => (
+                <TouchableOpacity
+                  key={`end-${h}`}
+                  style={[
+                    styles.hourChip,
+                    endHour === h && styles.hourChipActive,
+                  ]}
+                  onPress={() => setEndHour(h)}
+                >
+                  <Text
+                    style={[
+                      styles.hourChipText,
+                      endHour === h && styles.hourChipTextActive,
+                    ]}
+                  >
+                    {String(h).padStart(2, "0")}:00
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         )}
-      />
+
+        {/* Generate Button */}
+        <TouchableOpacity
+          style={[
+            styles.generateButton,
+            (selectedDates.size === 0 || generating) &&
+              styles.generateButtonDisabled,
+          ]}
+          onPress={handleBulkGenerate}
+          disabled={selectedDates.size === 0 || generating}
+        >
+          {generating ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <>
+              <Ionicons name="flash" size={20} color="#FFF" />
+              <Text style={styles.generateText}>
+                Generate{" "}
+                {selectedDates.size > 0
+                  ? `${(endHour - startHour) * selectedDates.size} Slots`
+                  : "Slots"}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Summary of existing slots this month */}
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>This Month</Text>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{existingSlots.length}</Text>
+              <Text style={styles.summaryLabel}>Total Slots</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>
+                {existingSlots.filter((s) => !s.isBooked).length}
+              </Text>
+              <Text style={styles.summaryLabel}>Available</Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>
+                {existingSlots.filter((s) => s.isBooked).length}
+              </Text>
+              <Text style={styles.summaryLabel}>Booked</Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -281,49 +534,140 @@ const styles = StyleSheet.create({
   courtChipActive: { backgroundColor: "#E46A41" },
   courtChipText: { color: "#8888AA", fontWeight: "600" },
   courtChipTextActive: { color: "#FFF" },
-  dateChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: "#2A2A42",
-    marginRight: 8,
+
+  // Calendar
+  calHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
-  dateChipActive: { backgroundColor: "#E46A41" },
-  dateChipText: { color: "#8888AA", fontWeight: "600", fontSize: 13 },
-  dateChipTextActive: { color: "#FFF" },
+  calTitle: { fontSize: 18, fontWeight: "700", color: "#FFF" },
+  dayNamesRow: { flexDirection: "row", marginBottom: 8 },
+  dayName: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 12,
+    color: "#8888AA",
+    fontWeight: "600",
+  },
+  calGrid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 16 },
+  calCell: {
+    width: "14.28%",
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  calCellSelected: { backgroundColor: "#E46A41", borderRadius: 12 },
+  calCellToday: { borderWidth: 1, borderColor: "#E46A41", borderRadius: 12 },
+  calCellPast: { opacity: 0.3 },
+  calDateText: { fontSize: 15, color: "#FFF", fontWeight: "500" },
+  calDateTextSelected: { color: "#FFF", fontWeight: "700" },
+  calDateTextPast: { color: "#555" },
+  slotDot: {
+    position: "absolute",
+    bottom: 4,
+    backgroundColor: "#4CAF50",
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    minWidth: 16,
+    alignItems: "center",
+  },
+  slotDotText: { color: "#FFF", fontSize: 9, fontWeight: "700" },
+
+  // Quick actions
+  quickActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
+  },
+  quickBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#2A2A42",
+  },
+  quickBtnText: { color: "#E46A41", fontSize: 13, fontWeight: "600" },
+  selectionCount: {
+    color: "#8888AA",
+    fontSize: 13,
+    marginLeft: "auto",
+  },
+
+  // Time range
+  timeRangeCard: {
+    backgroundColor: "#2A2A42",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+  },
+  timeRangeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  timeRangeTitle: { flex: 1, color: "#FFF", fontWeight: "600", fontSize: 15 },
+  timeRangeValue: { color: "#E46A41", fontWeight: "700", fontSize: 18 },
+  timePickerContainer: {
+    backgroundColor: "#2A2A42",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+  },
+  timePickerLabel: {
+    color: "#8888AA",
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  hourChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#1A1A2E",
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#3A3A55",
+  },
+  hourChipActive: { backgroundColor: "#E46A41", borderColor: "#E46A41" },
+  hourChipText: { color: "#8888AA", fontWeight: "600", fontSize: 13 },
+  hourChipTextActive: { color: "#FFF" },
+
+  // Generate
   generateButton: {
     backgroundColor: "#4CAF50",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 14,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 14,
     gap: 8,
     marginBottom: 24,
   },
-  generateText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
-  sectionTitle: {
+  generateButtonDisabled: { opacity: 0.5 },
+  generateText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+
+  // Summary
+  summaryCard: {
+    backgroundColor: "#2A2A42",
+    borderRadius: 14,
+    padding: 20,
+    marginBottom: 40,
+  },
+  summaryTitle: {
+    color: "#FFF",
     fontSize: 16,
     fontWeight: "700",
-    color: "#FFF",
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  slotRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#2A2A42",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 8,
-  },
-  slotTime: { color: "#FFF", fontWeight: "600", fontSize: 15 },
-  slotRight: { flexDirection: "row", alignItems: "center", gap: 12 },
-  slotPrice: { color: "#8888AA", fontSize: 13 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  bookedBadge: { backgroundColor: "rgba(255,82,82,0.15)" },
-  availableBadge: { backgroundColor: "rgba(76,175,80,0.15)" },
-  statusText: { fontSize: 12, fontWeight: "700" },
-  bookedText: { color: "#FF5252" },
-  availableText: { color: "#4CAF50" },
+  summaryRow: { flexDirection: "row", justifyContent: "space-around" },
+  summaryItem: { alignItems: "center" },
+  summaryValue: { color: "#FFF", fontSize: 24, fontWeight: "700" },
+  summaryLabel: { color: "#8888AA", fontSize: 12, marginTop: 4 },
 });

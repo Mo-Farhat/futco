@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import {
+    ActivityIndicator,
     Image,
     ScrollView,
     StyleSheet,
@@ -11,16 +12,55 @@ import {
     View,
 } from "react-native";
 import { FEATURED_COURTS } from "../../constants/data";
+import { useCourts } from "../../hooks/useCourts";
 
 export default function CourtDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const court = FEATURED_COURTS.find((c) => c.id === id);
+  const { courts: firestoreCourts, loading } = useCourts();
+
+  // Try Firestore first, then fall back to local data
+  const court =
+    firestoreCourts.find((c) => c.id === id) ||
+    FEATURED_COURTS.find((c) => c.id === id);
+
+  if (loading && !court) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color="#E46A41" />
+      </View>
+    );
+  }
 
   if (!court) {
     return (
-      <View style={styles.container}>
-        <Text>Court not found</Text>
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <Stack.Screen options={{ headerShown: false }} />
+        <Ionicons name="tennisball-outline" size={64} color="#CCC" />
+        <Text style={{ color: "#999", fontSize: 18, marginTop: 16 }}>
+          Court not found
+        </Text>
+        <TouchableOpacity
+          style={{
+            marginTop: 20,
+            padding: 12,
+            backgroundColor: "#E46A41",
+            borderRadius: 10,
+          }}
+          onPress={() => router.back()}
+        >
+          <Text style={{ color: "#FFF", fontWeight: "600" }}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
